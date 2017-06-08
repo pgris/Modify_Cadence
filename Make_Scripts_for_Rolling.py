@@ -32,7 +32,7 @@ def submit(combi_list):
     logname=procid+'.log'
     log = dirLog + "/" + logname
     
-    cmd = 'python run_modify.py --combi_list '+filename +' >& '+log
+    cmd = 'python run_modify.py --combi_list '+filename +' >& '+log +' &'
     scriptName = "scripts/" + procid+ ".sh"
     script = open(scriptName,"w")
     script.write("#!/usr/local/bin/bash\n")

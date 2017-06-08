@@ -88,11 +88,20 @@ class Merge_Fields:
             vars=['band','mjd','exptime','rawSeeing','seeing','moon_frac','sky','kAtm','airmass','m5sigmadepth','Nexp','Ra','Dec'] 
             bandeau='# band : \n# mjd : \n# exptime : \n# rawSeeing : \n# seeing : [was FWHMeff] \n# moon_frac : \n# sky : \n# kAtm : \n# airmass : \n# m5sigmadepth : \n# Nexp : \n# Ra : \n# Dec : \n# end\n'
 
+            """
+            for field in fields:
+                print 'field',field.fieldid
+                for key, val in field.seasons.items():
+                    print key,len(val)
+            print 'new fields'
+            """
             for field in fields_new:
+                #print 'field',field.fieldid
                 outfile = open(self.output_dir+'/'+self.prefix+str(field.fieldid)+'.txt','wb')
                 outfile.write(bandeau)
                 recap=None
                 for key, val in field.seasons.items():
+                    #print key,len(val)
                     if recap is None:
                         recap=val
                     else:
@@ -299,18 +308,19 @@ class Merge_Fields:
             seas_band=season[np.where(season[self.filterCol]==band)]
         
             #print 'size',len(seas_band)
-            mjd_min=np.min(seas_band[self.mjdCol])
-            mjd_max=np.max(seas_band[self.mjdCol])
-            ra=np.unique(seas_band['Ra'])[0]
-            dec=np.unique(seas_band['Dec'])[0]
             periods=None
             if len(seas_band) > 1:
-                periods=self.Get_Periods(mjd_min,mjd_max,ra,dec,band[-1],len(seas_band))
-           
-            if season_reshuffled is None:
-                season_reshuffled=self.Reshuffle_band(seas_band,periods)
-            else:
-                season_reshuffled=np.append(season_reshuffled,self.Reshuffle_band(seas_band,periods))
+                mjd_min=np.min(seas_band[self.mjdCol])
+                mjd_max=np.max(seas_band[self.mjdCol])
+                ra=np.unique(seas_band['Ra'])[0]
+                dec=np.unique(seas_band['Dec'])[0]
+                if mjd_max-mjd_min > 1.:
+                    periods=self.Get_Periods(mjd_min,mjd_max,ra,dec,band[-1],len(seas_band))
+            if len(seas_band) > 0:    
+                if season_reshuffled is None:
+                    season_reshuffled=self.Reshuffle_band(seas_band,periods)
+                else:
+                    season_reshuffled=np.append(season_reshuffled,self.Reshuffle_band(seas_band,periods))
 
         return season_reshuffled
 
@@ -319,8 +329,9 @@ class Merge_Fields:
         if periods is None:
             return season
 
-
-        mean_per_band=len(season)/(len(periods)-1)
+        mean_per_band=len(season)
+        if len(periods) > 1:
+            mean_per_band=len(season)/(len(periods)-1)
 
         iobs=-1
         airmass=1.2
@@ -377,12 +388,15 @@ class Merge_Fields:
         periods={}
         r=[]
         airmass=1.3
-        for mjd in np.arange(mjd_min,mjd_max,1./24.):
+        for mjd in np.arange(mjd_min,mjd_max,1./48.):
             mysky=SkyBrightness(ra,dec,mjd,0.,filtre,airmass)
              #if mysky.moonPhase < 60.:
             if mysky.Twilight == False and mysky.target_airmass<1.5 and mysky.moonZD_DEG > 85. and mysky.moonPhase < 60:
                 r.append((mjd,mysky.moonPhase,mysky.distance2moon_DEG,mysky.new_skybrightness(),mysky.moonZD_DEG,mysky.target_airmass))
+        #print mjd_min,mjd_max,mjd_max-mjd_min,len(r)
 
+        if len(r) == 0:
+            return None
         tabc=np.rec.fromrecords(r,names=['mjd','moonPhase','dist2Moon','sky','moonZD_DEG','airmass'])
 
         thediff=tabc['mjd'][1:]-tabc['mjd'][:-1]

@@ -38,7 +38,7 @@ class Observations:
                 r.append(tuple(tofill))
         return np.rec.fromrecords(r,names=varname)
             
-    def Get_Seasons(self,data,season_length=80):
+    def Get_Seasons(self,data,season_length=110):
         
         thediff=data['mjd'][1:]-data['mjd'][:-1]
         idx,=np.where(thediff > season_length)
